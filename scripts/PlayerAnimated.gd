@@ -7,6 +7,9 @@ var moving: bool = false
 var animation_player: AnimationPlayer
 var gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
 var movement_enabled: bool = true
+var desired_direction: Vector3 = Vector3.ZERO
+
+const TURN_SPEED: float = 8.0
 
 func _ready():
 	target_position = global_transform.origin
@@ -39,7 +42,7 @@ func _physics_process(delta):
 		_set_target_position()
 
 	if moving:
-		_move_towards_target()
+		_move_towards_target(delta)
 	else:
 		_play_idle_animation()
 
@@ -63,17 +66,20 @@ func _set_target_position():
 		target_position = result.position
 		target_position.y = global_transform.origin.y
 		moving = true
-		_face_towards(target_position)
+		desired_direction = (target_position - global_transform.origin)
+		desired_direction.y = 0
+		if desired_direction.length() > 0.01:
+			desired_direction = desired_direction.normalized()
 		_play_walk_animation()
 
-func _move_towards_target():
+func _move_towards_target(delta: float) -> void:
 	var direction = target_position - global_transform.origin
 	direction.y = 0
 	if direction.length() > 0.01:
-		direction = direction.normalized()
-		velocity.x = direction.x * SPEED
-		velocity.z = direction.z * SPEED
-		_face_towards(target_position)
+		desired_direction = direction.normalized()
+		velocity.x = desired_direction.x * SPEED
+		velocity.z = desired_direction.z * SPEED
+		_update_rotation(delta)
 		_play_walk_animation()
 	else:
 		stop_movement()
@@ -102,17 +108,18 @@ func _play_idle_animation():
 			if animation_player.current_animation != "idle":
 				animation_player.play("idle")
 
-func _face_towards(position: Vector3):
-	var look_target = position
-	look_target.y = global_transform.origin.y
-	look_at(look_target, Vector3.UP)
-	rotate_y(PI)
+func _update_rotation(delta: float) -> void:
+	if desired_direction.length() < 0.001:
+		return
+	var desired_yaw = atan2(-desired_direction.x, -desired_direction.z) + PI
+	rotation.y = lerp_angle(rotation.y, desired_yaw, TURN_SPEED * delta)
 
 func stop_movement():
 	velocity.x = 0
 	velocity.z = 0
 	moving = false
 	target_position = global_transform.origin
+	desired_direction = Vector3.ZERO
 	_play_idle_animation()
 
 func set_movement_enabled(value: bool):

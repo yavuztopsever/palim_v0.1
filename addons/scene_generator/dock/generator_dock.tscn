@@ -63,9 +63,17 @@ text = "Interior Spaces"
 layout_mode = 2
 text = "Seed:"
 
-[node name="SeedSpinBox" type="SpinBox" parent="VBoxContainer"]
+[node name="SeedContainer" type="HBoxContainer" parent="VBoxContainer"]
 layout_mode = 2
+
+[node name="SeedSpinBox" type="SpinBox" parent="VBoxContainer/SeedContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
 max_value = 999999.0
+
+[node name="NewSeedButton" type="Button" parent="VBoxContainer/SeedContainer"]
+layout_mode = 2
+text = "New"
 
 [node name="HSeparator2" type="HSeparator" parent="VBoxContainer"]
 layout_mode = 2
@@ -73,6 +81,11 @@ layout_mode = 2
 [node name="GenerateButton" type="Button" parent="VBoxContainer"]
 layout_mode = 2
 text = "Generate Scene"
+
+[node name="ProgressBar" type="ProgressBar" parent="VBoxContainer"]
+layout_mode = 2
+max_value = 100.0
+show_percentage = false
 
 [node name="StatusLabel" type="Label" parent="VBoxContainer"]
 layout_mode = 2

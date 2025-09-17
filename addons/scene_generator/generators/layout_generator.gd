@@ -41,27 +41,204 @@ func generate_scene(root: Node3D, params: GenerationParams) -> void:
 		push_error("Generated layout failed validation")
 		return
 	
-	# Check connectivity
+	# Check and ensure connectivity
 	if not layout.check_connectivity():
-		push_warning("Generated layout has connectivity issues")
+		push_warning("Generated layout has connectivity issues, attempting to fix...")
+		if layout.ensure_connectivity():
+			push_warning("Connectivity issues resolved")
+		else:
+			push_error("Could not resolve connectivity issues")
+			return
+	
+	# Final validation after connectivity fixes
+	if not layout.validate_layout():
+		push_error("Layout validation failed after connectivity fixes")
+		return
+	
+	# Print layout statistics for debugging
+	if OS.is_debug_build():
+		layout.print_layout_stats()
 	
 	# Set up basic scene foundation
 	setup_scene_foundation(root, params)
 	
-	# For now, just create a simple visualization of the layout
-	# (This will be expanded in later tasks when we implement asset placement)
-	_visualize_layout(root, layout)
+	# Use AssetPlacer to place actual assets instead of simple visualization
+	var asset_placer = AssetPlacer.new()
+	asset_placer.place_assets_from_layout(root, layout)
+	
+	# Add lighting after assets are placed
+	LightingSetup.place_interior_lights(root, layout, params)
+	LightingSetup.place_corridor_lights(root, layout, params)
+	LightingSetup.optimize_for_isometric_view(root)
 
 ## Generates a SceneLayout based on parameters
 func generate_layout(params: GenerationParams) -> SceneLayout:
 	var layout = SceneLayout.new(params.size)
+	
+	# Validate parameters before generation
+	if not _validate_generation_params(params):
+		push_error("Invalid generation parameters")
+		return layout
 	
 	if params.interior_spaces:
 		_generate_interior_layout(layout, params)
 	else:
 		_generate_outdoor_layout(layout, params)
 	
+	# Post-generation validation and fixes
+	_post_process_layout(layout, params)
+	
 	return layout
+
+## Validates generation parameters
+func _validate_generation_params(params: GenerationParams) -> bool:
+	var is_valid = true
+	
+	# Check size constraints
+	if params.size.x < MIN_ROOM_SIZE.x or params.size.y < MIN_ROOM_SIZE.y:
+		push_error("Layout size %s is too small. Minimum size is %s" % [params.size, MIN_ROOM_SIZE])
+		is_valid = false
+	
+	# Check if size is reasonable for the requested area type
+	var total_area = params.size.x * params.size.y
+	if params.interior_spaces and total_area < 25:  # 5x5 minimum for interior
+		push_warning("Very small area (%d cells) for interior generation" % total_area)
+	elif not params.interior_spaces and total_area < 100:  # 10x10 minimum for outdoor
+		push_warning("Small area (%d cells) for outdoor generation" % total_area)
+	
+	return is_valid
+
+## Post-processes the layout to fix common issues
+func _post_process_layout(layout: SceneLayout, params: GenerationParams) -> void:
+	# Remove isolated single cells
+	_remove_isolated_cells(layout)
+	
+	# Ensure minimum connectivity
+	if not layout.check_connectivity():
+		_fix_connectivity_issues(layout, params)
+	
+	# Add doors where appropriate
+	if params.interior_spaces:
+		_add_doors_to_layout(layout)
+
+## Removes isolated single cells that don't contribute to the layout
+func _remove_isolated_cells(layout: SceneLayout) -> void:
+	var cells_to_remove: Array[Vector2i] = []
+	
+	for cell in layout.cells:
+		if cell.cell_type == "floor":
+			var neighbors = layout.get_neighbors(cell.position, false)
+			var floor_neighbors = 0
+			
+			for neighbor in neighbors:
+				if neighbor.cell_type == "floor":
+					floor_neighbors += 1
+			
+			# Remove isolated floor cells (no floor neighbors)
+			if floor_neighbors == 0:
+				cells_to_remove.append(cell.position)
+	
+	for pos in cells_to_remove:
+		layout.remove_cell(pos)
+		if OS.is_debug_build():
+			print("Removed isolated cell at %s" % pos)
+
+## Attempts to fix connectivity issues in the layout
+func _fix_connectivity_issues(layout: SceneLayout, params: GenerationParams) -> void:
+	var max_attempts = 3
+	var attempt = 0
+	
+	while attempt < max_attempts and not layout.check_connectivity():
+		attempt += 1
+		
+		if OS.is_debug_build():
+			print("Connectivity fix attempt %d/%d" % [attempt, max_attempts])
+		
+		# Try to connect isolated areas
+		if not layout.ensure_connectivity():
+			# If automatic connection fails, add manual connections
+			_add_manual_connections(layout)
+		
+		# Remove any new isolated cells created by connections
+		_remove_isolated_cells(layout)
+
+## Adds manual connections between disconnected areas
+func _add_manual_connections(layout: SceneLayout) -> void:
+	var connected_components = layout._find_connected_components()
+	
+	if connected_components.size() <= 1:
+		return
+	
+	# Connect the largest component to all smaller ones
+	var largest_component = connected_components[0]
+	var largest_size = largest_component.size()
+	var largest_index = 0
+	
+	for i in range(1, connected_components.size()):
+		if connected_components[i].size() > largest_size:
+			largest_component = connected_components[i]
+			largest_size = connected_components[i].size()
+			largest_index = i
+	
+	# Connect each other component to the largest one
+	for i in range(connected_components.size()):
+		if i != largest_index:
+			var component = connected_components[i]
+			_connect_component_to_main(layout, component, largest_component)
+
+## Connects a component to the main connected area
+func _connect_component_to_main(layout: SceneLayout, component: Array[Vector2i], main_component: Array[Vector2i]) -> void:
+	var best_distance = INF
+	var best_start: Vector2i
+	var best_end: Vector2i
+	
+	# Find closest points between components
+	for pos1 in component:
+		for pos2 in main_component:
+			var distance = (pos2 - pos1).length()
+			if distance < best_distance:
+				best_distance = distance
+				best_start = pos1
+				best_end = pos2
+	
+	# Create corridor between closest points
+	_create_corridor_between_points(layout, best_start, best_end)
+
+## Adds doors to appropriate locations in interior layouts
+func _add_doors_to_layout(layout: SceneLayout) -> void:
+	# Find wall positions that could be doors (walls between floor areas)
+	var door_candidates: Array[Vector2i] = []
+	
+	for cell in layout.cells:
+		if cell.cell_type == "wall":
+			if _should_be_door(layout, cell.position):
+				door_candidates.append(cell.position)
+	
+	# Convert some wall candidates to doors
+	var doors_added = 0
+	var max_doors = max(1, door_candidates.size() / 4)  # Add doors to 25% of candidates
+	
+	for i in range(min(max_doors, door_candidates.size())):
+		var door_pos = door_candidates[i]
+		var door_cell = CellData.new(door_pos, "door")
+		door_cell.asset_id = "door_frame"
+		layout.set_cell(door_pos, door_cell)
+		doors_added += 1
+	
+	if OS.is_debug_build() and doors_added > 0:
+		print("Added %d doors to layout" % doors_added)
+
+## Checks if a wall position should be converted to a door
+func _should_be_door(layout: SceneLayout, wall_pos: Vector2i) -> bool:
+	var neighbors = layout.get_neighbors(wall_pos, false)
+	var floor_neighbors = 0
+	
+	for neighbor in neighbors:
+		if neighbor.cell_type == "floor":
+			floor_neighbors += 1
+	
+	# A wall should be a door if it has exactly 2 floor neighbors (connects two areas)
+	return floor_neighbors == 2
 
 ## Generates interior layout using BSP algorithm
 func _generate_interior_layout(layout: SceneLayout, params: GenerationParams) -> void:

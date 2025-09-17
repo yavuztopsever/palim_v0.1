@@ -90,18 +90,8 @@ func get_all_grid_positions(bounds: Vector2i) -> Array[Vector2i]:
 
 ## Sets up basic scene foundation (lighting, environment)
 func setup_scene_foundation(root: Node3D, params: GenerationParams) -> void:
-	# Add basic lighting if not present
-	if not _has_world_environment(root):
-		var world_env = WorldEnvironment.new()
-		world_env.name = "WorldEnvironment"
-		
-		var environment = Environment.new()
-		environment.background_mode = Environment.BG_SKY
-		environment.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
-		environment.ambient_light_energy = 0.3
-		
-		world_env.environment = environment
-		root.add_child(world_env)
+	# Set up comprehensive lighting system
+	LightingSetup.setup_scene_lighting(root, params)
 
 ## Checks if the scene already has a WorldEnvironment
 func _has_world_environment(root: Node3D) -> bool:
