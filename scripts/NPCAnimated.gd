@@ -2,8 +2,9 @@ extends StaticBody3D
 
 @export var npc_name: String = "Clerk"
 @export var dialogue_text: String = "Another form to file... the work never ends."
+@export var dialogue_resource: DialogueResource
 
-signal interaction_started(npc_name, dialogue)
+signal interaction_started(npc_name, dialogue, dialogue_resource, npc)
 
 var player_nearby = false
 var interaction_active = false
@@ -11,6 +12,7 @@ var animation_player: AnimationPlayer
 
 func _ready():
 	add_to_group("npcs")
+	set_process_input(true)
 
 	# Find AnimationPlayer in the character model
 	await get_tree().process_frame
@@ -50,7 +52,7 @@ func _input(event):
 func start_interaction():
 	if not interaction_active:
 		interaction_active = true
-		interaction_started.emit(npc_name, dialogue_text)
+		interaction_started.emit(npc_name, dialogue_text, dialogue_resource, self)
 		print(npc_name + ": " + dialogue_text)
 
 		# Face the player
@@ -60,6 +62,8 @@ func start_interaction():
 			var look_pos = player.global_position
 			look_pos.y = global_position.y
 			look_at(look_pos, Vector3.UP)
+			if player.has_method("stop_movement"):
+				player.stop_movement()
 
 		# Play talk animation if available
 		if animation_player:

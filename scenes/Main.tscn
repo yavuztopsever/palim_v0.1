@@ -1,10 +1,13 @@
-[gd_scene load_steps=10 format=3 uid="uid://bxqvdgn7vksmj"]
+[gd_scene load_steps=13 format=3 uid="uid://bxqvdgn7vksmj"]
 
 [ext_resource type="Script" uid="uid://cmoq4jcqwixul" path="res://scripts/CameraController.gd" id="1_camera"]
 [ext_resource type="Script" uid="uid://dpxe0rjthpliu" path="res://scripts/GameManager.gd" id="2_manager"]
 [ext_resource type="Script" uid="uid://bdcssc5s0ea0m" path="res://scripts/WallCutaway.gd" id="3_walls"]
 [ext_resource type="PackedScene" uid="uid://b00j1qc20wb2r" path="res://scenes/PlayerAnimated.tscn" id="4_player"]
 [ext_resource type="PackedScene" uid="uid://c7y3eow5m8gb6" path="res://scenes/NPCAnimated.tscn" id="5_npc"]
+[ext_resource type="NavigationMesh" uid="uid://y0po8upefa3v" path="res://navigation/MainNavigationMesh.tres" id="6_navmesh"]
+[ext_resource type="PackedScene" path="res://ui/DialogueUI.tscn" id="7_dialogue_ui"]
+[ext_resource type="Resource" uid="uid://c0r2b7aqmap83" path="res://data/dialogue/celeste_dialogue.tres" id="8_celeste_dialogue"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_1"]
 sky_top_color = Color(0.2, 0.2, 0.25, 1)
@@ -48,6 +51,9 @@ use_collision = true
 collision_mask = 0
 size = Vector3(40, 0.2, 40)
 
+[node name="NavigationRegion3D" type="NavigationRegion3D" parent="."]
+navigation_mesh = ExtResource("6_navmesh")
+
 [node name="GameManager" type="Node" parent="."]
 script = ExtResource("2_manager")
 
@@ -60,6 +66,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.2, 0)
 [node name="NPCAnimated" parent="." instance=ExtResource("5_npc")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 0.2, 5)
 npc_name = "Celeste"
+dialogue_resource = ExtResource("8_celeste_dialogue")
 
 [node name="Walls" type="Node3D" parent="."]
 
@@ -101,3 +108,9 @@ use_collision = true
 collision_layer = 16
 collision_mask = 0
 size = Vector3(2, 1, 1)
+
+[node name="DeskNavObstacle" type="NavigationObstacle3D" parent="Desk"]
+radius = 1.2
+height = 1.5
+
+[node name="DialogueUI" parent="." instance=ExtResource("7_dialogue_ui")]

@@ -40,8 +40,3 @@ toggle_walls={
 3d_physics/layer_3="NPCs"
 3d_physics/layer_4="Walls"
 3d_physics/layer_5="Objects"
-
-[physics]
-
-3d/default_gravity=9.8
-3d/default_gravity_vector=Vector3(0, -1, 0)

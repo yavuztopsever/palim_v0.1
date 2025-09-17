@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="DialogueResource" load_steps=6 format=3 uid="uid://c0r2b7aqmap83"]
+
+[ext_resource type="Script" uid="uid://digblu6uiyedj" path="res://scripts/dialogue/dialogue_resource.gd" id="1_dialogue_resource"]
+[ext_resource type="Script" uid="uid://b64allibkklvp" path="res://scripts/dialogue/dialogue_line.gd" id="2_dialogue_line"]
+
+[sub_resource type="Resource" id="DialogueLine_1"]
+resource_name = "CelesteGreeting"
+script = ExtResource("2_dialogue_line")
+speaker = "Celeste"
+text = "Oh, you're the new intake? Paperwork backlog's a mile high."
+
+[sub_resource type="Resource" id="DialogueLine_2"]
+resource_name = "PlayerReply"
+script = ExtResource("2_dialogue_line")
+speaker = "Player"
+text = "I'm just looking for orientation. Any chance you can help?"
+
+[sub_resource type="Resource" id="DialogueLine_3"]
+resource_name = "CelesteDirections"
+script = ExtResource("2_dialogue_line")
+speaker = "Celeste"
+text = "Orientation? Down the hall, third door on the left. Bring coffee next time."
+
+[resource]
+script = ExtResource("1_dialogue_resource")
+lines = Array[ExtResource("2_dialogue_line")]([SubResource("DialogueLine_1"), SubResource("DialogueLine_2"), SubResource("DialogueLine_3")])

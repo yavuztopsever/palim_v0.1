@@ -799,15 +799,34 @@ Each faction represents a distinct response to the fundamental question: "How sh
 - Develops training programs for newly conscious individuals
 - Final role: Director of consciousness development and education
 
-**The Political Revolutionary Path**
-- Player focuses on building popular support and developing post-revolution society
-- Becomes skilled in community organizing and political theory
-- Works to ensure revolutionary success leads to genuine democratic transformation
-- Final role: Political leader in new consciousness-aware democratic society
+**The Political Care Path (CHRL)**
+- Player focuses on community support and durable care networks
+- Becomes skilled in organizing volunteer stewards and clinic alliances
+- Works to embed care metrics in city policy
+- Final role: League coordinator for citywide harm‑reduction standards
 
 ---
 
-*These faction storylines provide players with multiple paths for engaging with the fundamental conflicts of Palimpsest Bureau. Each faction offers distinct philosophical approaches while maintaining internal complexity and moral ambiguity. Player choices within and between faction storylines determine not only individual character development but the ultimate fate of human consciousness in Palim.*
+*These faction storylines provide players with multiple paths for engaging with the fundamental conflicts of Palim. Each faction offers distinct philosophical approaches while maintaining internal complexity and moral ambiguity. Player choices within and between faction storylines determine not only individual character development but the ultimate fate of human consciousness in Palim.*
+
+## NPC Constellation (Recurring)
+
+- Elena Valdez (ACT Steward): Tender forensic; fears harm from truth done wrong.
+- Karim al‑Nasr (Flow Planner): Night‑shift retrofits; fights for cheap fixes over vanity builds.
+- Dr. Mercy Santos (CHRL Clinician): Triage calm; keeps the notes that matter.
+- Mara Dastur (MGC Chair): Code evangelist; believes in reopening with dignity.
+- Rosa Delgado (MACN Organizer): Kitchen poet; schedules that keep a block alive.
+- Koji Nakamura (Artist): Color fields for de‑sync; resists codes until someone gets hurt.
+- Torres (Security Captain): Haunted; will respect results when he sees them.
+- Celeste (Archivist): Wants to believe records can be kind.
+
+## World Texture (Reusable Details)
+
+- Signage Palimpsests: Faint previous routes visible under fresh paint.
+- Calm Room Kits: Weighted blankets, amber bulbs, low hum, water pitcher, two chairs.
+- De‑Sync Furniture: Non‑parallel bench clusters; no axis dominates the square.
+- Queue Rituals: “Check‑in rounds”—a quiet roll call that breaks panic.
+- Appeals Packets: Tabs for testimony, receipts, maps, and an empty tab labeled “Care.”
 
 **Related Campaign Documents:**
 - [Master Campaign Overview](master_campaign_overview.md)
