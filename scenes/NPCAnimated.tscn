@@ -1,0 +1,30 @@
+[gd_scene load_steps=5 format=3 uid="uid://cx4d3xy2xmvkqr"]
+
+[ext_resource type="Script" path="res://scripts/NPCAnimated.gd" id="1_npc_anim"]
+[ext_resource type="PackedScene" uid="uid://bfsb77mbbs1br" path="res://assets/characters/AnimationLibrary_Godot_Standard.glb" id="2_character"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_1"]
+height = 1.8
+radius = 0.35
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_1"]
+radius = 2.0
+
+[node name="NPCAnimated" type="StaticBody3D"]
+collision_layer = 4
+collision_mask = 3
+script = ExtResource("1_npc_anim")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
+shape = SubResource("CapsuleShape3D_1")
+
+[node name="CharacterModel" parent="." instance=ExtResource("2_character")]
+
+[node name="InteractionArea" type="Area3D" parent="."]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="InteractionArea"]
+shape = SubResource("SphereShape3D_1")
+
+[connection signal="body_entered" from="InteractionArea" to="." method="_on_interaction_area_body_entered"]
+[connection signal="body_exited" from="InteractionArea" to="." method="_on_interaction_area_body_exited"]
