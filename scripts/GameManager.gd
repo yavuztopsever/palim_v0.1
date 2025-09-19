@@ -19,6 +19,7 @@ func _ready():
 	print("Click to move, E to interact with NPCs, W to toggle wall visibility")
 	print("Mouse wheel to zoom in/out, Middle click to reset zoom")
 	print("Press ENTER to load TestRoom, SPACE to load TownSquare, H to load PlayerHouse")
+	print("Characters now use integrated animation library with consistent puppeteering")
 	print("")
 
 	# Get references to core systems

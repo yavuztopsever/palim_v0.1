@@ -1,6 +1,6 @@
 [gd_scene load_steps=3 format=3 uid="uid://eb7gw2eu4bco"]
 
-[ext_resource type="PackedScene" uid="uid://b00j1qc20wb2r" path="res://scenes/PlayerAnimated.tscn" id="1_player"]
+[ext_resource type="PackedScene" uid="uid://bmodular_player" path="res://scenes/characters/ModularPlayer.tscn" id="1_player"]
 [ext_resource type="NavigationMesh" uid="uid://y0po8upefa3v" path="res://navigation/MainNavigationMesh.tres" id="2_navmesh"]
 
 [node name="PlayerHouse" type="Node3D"]
@@ -13,7 +13,7 @@ use_collision = true
 collision_mask = 0
 size = Vector3(25, 0.2, 20)
 
-[node name="PlayerAnimated" parent="." instance=ExtResource("1_player")]
+[node name="ModularPlayer" parent="." instance=ExtResource("1_player")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.2, 0)
 
 [node name="Walls" type="Node3D" parent="."]

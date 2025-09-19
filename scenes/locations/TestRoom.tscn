@@ -1,7 +1,7 @@
 [gd_scene load_steps=5 format=3 uid="uid://dxoiobyeml77c"]
 
-[ext_resource type="PackedScene" uid="uid://b00j1qc20wb2r" path="res://scenes/PlayerAnimated.tscn" id="1_player"]
-[ext_resource type="PackedScene" uid="uid://c7y3eow5m8gb6" path="res://scenes/NPCAnimated.tscn" id="2_npc"]
+[ext_resource type="PackedScene" uid="uid://bmodular_player" path="res://scenes/characters/ModularPlayer.tscn" id="1_player"]
+[ext_resource type="PackedScene" uid="uid://bmodular_npc" path="res://scenes/characters/ModularNPC.tscn" id="2_npc"]
 [ext_resource type="Resource" uid="uid://c0r2b7aqmap83" path="res://data/dialogue/celeste_dialogue.tres" id="3_celeste_dialogue"]
 [ext_resource type="NavigationMesh" uid="uid://y0po8upefa3v" path="res://navigation/MainNavigationMesh.tres" id="4_navmesh"]
 
@@ -15,10 +15,10 @@ use_collision = true
 collision_mask = 0
 size = Vector3(40, 0.2, 40)
 
-[node name="PlayerAnimated" parent="." instance=ExtResource("1_player")]
+[node name="ModularPlayer" parent="." instance=ExtResource("1_player")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.2, 0)
 
-[node name="NPCAnimated" parent="." instance=ExtResource("2_npc")]
+[node name="ModularNPC" parent="." instance=ExtResource("2_npc")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 0.2, 5)
 npc_name = "Celeste"
 dialogue_resource = ExtResource("3_celeste_dialogue")
