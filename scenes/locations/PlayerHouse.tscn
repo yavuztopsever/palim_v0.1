@@ -1,0 +1,85 @@
+[gd_scene load_steps=3 format=3 uid="uid://eb7gw2eu4bco"]
+
+[ext_resource type="PackedScene" uid="uid://b00j1qc20wb2r" path="res://scenes/PlayerAnimated.tscn" id="1_player"]
+[ext_resource type="NavigationMesh" uid="uid://y0po8upefa3v" path="res://navigation/MainNavigationMesh.tres" id="2_navmesh"]
+
+[node name="PlayerHouse" type="Node3D"]
+
+[node name="NavigationRegion3D" type="NavigationRegion3D" parent="."]
+navigation_mesh = ExtResource("2_navmesh")
+
+[node name="Ground" type="CSGBox3D" parent="."]
+use_collision = true
+collision_mask = 0
+size = Vector3(25, 0.2, 20)
+
+[node name="PlayerAnimated" parent="." instance=ExtResource("1_player")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.2, 0)
+
+[node name="Walls" type="Node3D" parent="."]
+
+[node name="NorthWall" type="CSGBox3D" parent="Walls"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, -10)
+use_collision = true
+collision_layer = 8
+collision_mask = 0
+size = Vector3(25, 4, 0.5)
+metadata/wall_direction = "north"
+
+[node name="SouthWall" type="CSGBox3D" parent="Walls"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, 10)
+use_collision = true
+collision_layer = 8
+collision_mask = 0
+size = Vector3(25, 4, 0.5)
+metadata/wall_direction = "south"
+
+[node name="EastWall" type="CSGBox3D" parent="Walls"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12.5, 2, 0)
+use_collision = true
+collision_layer = 8
+collision_mask = 0
+size = Vector3(0.5, 4, 20)
+metadata/wall_direction = "east"
+
+[node name="WestWall" type="CSGBox3D" parent="Walls"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12.5, 2, 0)
+use_collision = true
+collision_layer = 8
+collision_mask = 0
+size = Vector3(0.5, 4, 20)
+metadata/wall_direction = "west"
+
+[node name="Furniture" type="Node3D" parent="."]
+
+[node name="Bed" type="CSGBox3D" parent="Furniture"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, 0.3, -6)
+use_collision = true
+collision_layer = 16
+collision_mask = 0
+size = Vector3(3, 0.6, 6)
+
+[node name="BedNavObstacle" type="NavigationObstacle3D" parent="Furniture/Bed"]
+radius = 2.0
+
+[node name="Table" type="CSGBox3D" parent="Furniture"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 0.4, 4)
+use_collision = true
+collision_layer = 16
+collision_mask = 0
+size = Vector3(4, 0.8, 2)
+
+[node name="TableNavObstacle" type="NavigationObstacle3D" parent="Furniture/Table"]
+radius = 2.5
+height = 1.2
+
+[node name="Chest" type="CSGBox3D" parent="Furniture"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 0.5, -8)
+use_collision = true
+collision_layer = 16
+collision_mask = 0
+size = Vector3(2, 1, 1)
+
+[node name="ChestNavObstacle" type="NavigationObstacle3D" parent="Furniture/Chest"]
+radius = 1.2
+height = 1.5
