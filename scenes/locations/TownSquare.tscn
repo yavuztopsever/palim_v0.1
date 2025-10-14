@@ -1,10 +1,12 @@
 [gd_scene load_steps=4 format=3 uid="uid://d2pfrc6e8b7o3"]
 
-[ext_resource type="PackedScene" path="res://scenes/characters/ModularPlayer.tscn" id="1_player"]
+[ext_resource type="Script" path="res://scripts/LocationPreview.gd" id="1_preview"]
 [ext_resource type="PackedScene" path="res://scenes/characters/ModularNPC.tscn" id="2_npc"]
 [ext_resource type="NavigationMesh" uid="uid://y0po8upefa3v" path="res://navigation/MainNavigationMesh.tres" id="3_navmesh"]
 
 [node name="TownSquare" type="Node3D"]
+script = ExtResource("1_preview")
+location_type = "outdoor_large"
 
 [node name="NavigationRegion3D" type="NavigationRegion3D" parent="."]
 navigation_mesh = ExtResource("3_navmesh")
@@ -14,7 +16,7 @@ use_collision = true
 collision_mask = 0
 size = Vector3(60, 0.2, 60)
 
-[node name="ModularPlayer" parent="." instance=ExtResource("1_player")]
+[node name="PlayerSpawn" type="Marker3D" parent="." groups=["player_spawn"]]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.2, 0)
 
 [node name="Buildings" type="Node3D" parent="."]

@@ -1,0 +1,180 @@
+{
+  "main": {
+    "id": "278b4f66f2b4e522",
+    "type": "split",
+    "children": [
+      {
+        "id": "b38369bd4ea5a49f",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "dee1e4bddfa6338d",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "palimpsest-worldbuilding.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "palimpsest-worldbuilding"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "0fe94f33a254b191",
+    "type": "split",
+    "children": [
+      {
+        "id": "4bd469c8d8fa72ed",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "f3b3b48e4978ec17",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false
+              },
+              "icon": "lucide-folder-closed",
+              "title": "Files"
+            }
+          },
+          {
+            "id": "a8f3f403807615ac",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "Search"
+            }
+          },
+          {
+            "id": "4075caab9bf7c711",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {},
+              "icon": "lucide-bookmark",
+              "title": "Bookmarks"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "right": {
+    "id": "f6b2dce9994c0af1",
+    "type": "split",
+    "children": [
+      {
+        "id": "e92a77e6611d0b90",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "44326f4d696df1d2",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "file": "palimpsest-worldbuilding.md",
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "Backlinks for palimpsest-worldbuilding"
+            }
+          },
+          {
+            "id": "ed52b0cdcb67d520",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "file": "palimpsest-worldbuilding.md",
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "Outgoing links from palimpsest-worldbuilding"
+            }
+          },
+          {
+            "id": "1238e17c3f7ad3e0",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "Tags"
+            }
+          },
+          {
+            "id": "5af1710e76915e07",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "file": "palimpsest-worldbuilding.md",
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "Outline of palimpsest-worldbuilding"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:Open quick switcher": false,
+      "graph:Open graph view": false,
+      "canvas:Create new canvas": false,
+      "daily-notes:Open today's daily note": false,
+      "templates:Insert template": false,
+      "command-palette:Open command palette": false,
+      "bases:Create new base": false
+    }
+  },
+  "active": "dee1e4bddfa6338d",
+  "lastOpenFiles": [
+    "PALIM.md",
+    "palimpsest-worldbuilding.md",
+    "OLD/world/overview.md",
+    "OLD/world/infrastructure.md",
+    "OLD"
+  ]
+}

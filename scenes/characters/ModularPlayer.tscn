@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" path="res://scripts/ModularPlayer.gd" id="1_modular_player"]
 [ext_resource type="PackedScene" path="res://assets/characters/AnimationLibrary_Godot_Standard.glb" id="2_character"]
-[ext_resource type="Script" path="res://scripts/AnimationController.gd" id="3_anim_controller"]
+[ext_resource type="Script" path="res://scripts/CharacterAnimator.gd" id="3_animator"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_1"]
 height = 1.8
@@ -22,5 +22,5 @@ shape = SubResource("CapsuleShape3D_1")
 [node name="RayCast3D" type="RayCast3D" parent="."]
 target_position = Vector3(0, -2, 0)
 
-[node name="AnimationController" type="Node" parent="."]
-script = ExtResource("3_anim_controller")
+[node name="CharacterAnimator" type="Node" parent="."]
+script = ExtResource("3_animator")

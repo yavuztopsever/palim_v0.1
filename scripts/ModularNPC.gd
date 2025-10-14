@@ -14,32 +14,9 @@ var player_nearby = false
 var interaction_active = false
 
 # Character system - integrated BaseCharacter functionality
-var animation_player: AnimationPlayer
 var character_model: Node3D
-var animation_controller: AnimationController
+var animator: CharacterAnimator
 var character_config: CharacterConfig
-var current_animation: String = ""
-var animation_speed: float = 1.0
-
-# Standard animation mappings for consistent puppeteering
-var standard_animations = {
-	"idle": ["Idle", "idle", "T-Pose", "t-pose"],
-	"walk": ["Walk", "walk", "Walking", "walking"],
-	"run": ["Run", "run", "Running", "running", "Jog", "jog"],
-	"jump": ["Jump", "jump", "Jumping", "jumping"],
-	"attack": ["Attack", "attack", "Punch", "punch", "Strike", "strike"],
-	"defend": ["Defend", "defend", "Block", "block", "Guard", "guard"],
-	"death": ["Death", "death", "Die", "die", "Dead", "dead"],
-	"talk": ["Talk", "talk", "Speaking", "speaking", "Gesture", "gesture"],
-	"wave": ["Wave", "wave", "Greeting", "greeting", "Hello", "hello"],
-	"dance": ["Dance", "dance", "Dancing", "dancing"],
-	"sit": ["Sit", "sit", "Sitting", "sitting"],
-	"sleep": ["Sleep", "sleep", "Sleeping", "sleeping", "Rest", "rest"],
-	"pickup": ["Pickup", "pickup", "Pick", "pick", "Grab", "grab"],
-	"throw": ["Throw", "throw", "Toss", "toss"],
-	"climb": ["Climb", "climb", "Climbing", "climbing"],
-	"crouch": ["Crouch", "crouch", "Crouching", "crouching", "Sneak", "sneak"]
-}
 
 func _ready():
 	add_to_group("npcs")
@@ -52,38 +29,26 @@ func _ready():
 func setup_character_system():
 	# Find character components
 	character_model = get_node_or_null("CharacterModel")
-	animation_controller = get_node_or_null("AnimationController")
+	animator = get_node_or_null("CharacterAnimator")
+	if animator == null:
+		animator = get_node_or_null("AnimationController")
 	
 	if not character_model:
-		print("Error: No CharacterModel found in ", name)
+		push_warning("Error: No CharacterModel found in %s" % name)
 		return
 	
-	# Find AnimationPlayer within the character model
-	animation_player = _search_for_animation_player(character_model)
-	if not animation_player:
-		print("Error: No AnimationPlayer found in character model")
+	if not animator:
+		push_warning("Error: No CharacterAnimator found in %s" % name)
 		return
 	
-	# Apply NPC configuration
+	var overrides := {} if npc_config == null else npc_config.animation_overrides
+	var speed := 1.0 if npc_config == null else npc_config.animation_speed
+	animator.setup(self, character_model, overrides, speed)
+	animator.refresh()
 	if npc_config:
-		apply_character_config(npc_config)
-		# Update NPC properties from config
-		npc_name = npc_config.character_name
-		dialogue_text = npc_config.default_dialogue
-		if npc_config.dialogue_resource:
-			dialogue_resource = npc_config.dialogue_resource
-	
-	print("NPC character setup complete. Available animations: ", animation_player.get_animation_list())
+		_apply_npc_identity(npc_config)
+	print("NPC character setup complete. Available animations: ", animator.get_available_clips())
 	play_animation("idle")
-
-func _search_for_animation_player(node: Node) -> AnimationPlayer:
-	if node is AnimationPlayer:
-		return node
-	for child in node.get_children():
-		var result = _search_for_animation_player(child)
-		if result:
-			return result
-	return null
 
 func _input(event):
 	if player_nearby and event.is_action_pressed("interact"):
@@ -92,8 +57,9 @@ func _input(event):
 func start_interaction():
 	if not interaction_active:
 		interaction_active = true
-		interaction_started.emit(npc_name, dialogue_text, dialogue_resource, self)
-		print(npc_name + ": " + dialogue_text)
+		var resolved_dialogue := _resolve_dialogue_text()
+		interaction_started.emit(npc_name, resolved_dialogue, dialogue_resource, self)
+		print("%s: %s" % [npc_name, resolved_dialogue])
 
 		# Face the player
 		var players = get_tree().get_nodes_in_group("player")
@@ -124,88 +90,11 @@ func _on_interaction_area_body_exited(body):
 		player_nearby = false
 		end_interaction()
 
-# Animation system with standard animation mapping
+# Animation system with dynamic animation mapping
 func play_animation(anim_name: String, force: bool = false) -> bool:
-	if not animation_player:
-		return false
-	
-	var normalized_name = anim_name.to_lower()
-	var animation_variants = []
-	
-	# Check if it's a standard animation name
-	if normalized_name in standard_animations:
-		animation_variants = standard_animations[normalized_name]
-	else:
-		# Try direct name variants
-		animation_variants = [
-			anim_name,
-			anim_name.capitalize(),
-			anim_name.to_upper(),
-			anim_name.to_lower()
-		]
-	
-	# Try to find and play the animation
-	for name_variant in animation_variants:
-		if animation_player.has_animation(name_variant):
-			if current_animation != name_variant or force:
-				animation_player.speed_scale = animation_speed
-				animation_player.play(name_variant)
-				current_animation = name_variant
-				print("NPC ", npc_name, " playing animation: ", name_variant)
-				return true
-			return true
-	
-	print("NPC ", npc_name, " animation not found: ", anim_name, " (tried: ", animation_variants, ")")
+	if animator:
+		return animator.play(anim_name, force)
 	return false
-
-# Puppeteer functions for consistent character control
-func puppet_idle():
-	return play_animation("idle")
-
-func puppet_walk():
-	return play_animation("walk")
-
-func puppet_run():
-	return play_animation("run")
-
-func puppet_jump():
-	return play_animation("jump")
-
-func puppet_attack():
-	return play_animation("attack")
-
-func puppet_talk():
-	return play_animation("talk")
-
-func puppet_wave():
-	return play_animation("wave")
-
-func puppet_dance():
-	return play_animation("dance")
-
-func puppet_sit():
-	return play_animation("sit")
-
-func puppet_sleep():
-	return play_animation("sleep")
-
-func puppet_pickup():
-	return play_animation("pickup")
-
-func puppet_throw():
-	return play_animation("throw")
-
-func puppet_climb():
-	return play_animation("climb")
-
-func puppet_crouch():
-	return play_animation("crouch")
-
-func puppet_defend():
-	return play_animation("defend")
-
-func puppet_death():
-	return play_animation("death")
 
 # Character customization methods
 func set_character_config(config: CharacterConfig):
@@ -213,78 +102,44 @@ func set_character_config(config: CharacterConfig):
 	character_config = config
 	if config:
 		apply_character_config(config)
-		# Update NPC properties from config
-		npc_name = config.character_name
-		dialogue_text = config.default_dialogue
-		if config.dialogue_resource:
-			dialogue_resource = config.dialogue_resource
+		_apply_npc_identity(config)
 
 func get_character_config() -> CharacterConfig:
 	return npc_config
 
-func apply_character_config(config: CharacterConfig):
-	if not config or not character_model:
-		return
-	
-	# Apply visual customizations
-	apply_textures(config.textures)
-	apply_materials(config.materials)
-	apply_scale(config.scale_multiplier)
-	
-	# Apply animation settings
-	animation_speed = config.animation_speed
-
-func apply_textures(textures: Dictionary):
-	if not character_model or textures.is_empty():
-		return
-	
-	# Find all MeshInstance3D nodes and apply textures
-	var mesh_instances = _find_all_mesh_instances(character_model)
-	for mesh_instance in mesh_instances:
-		var mesh_name = mesh_instance.name.to_lower()
-		
-		# Apply textures based on mesh names
-		for texture_key in textures:
-			if texture_key.to_lower() in mesh_name:
-				var material = mesh_instance.get_surface_override_material(0)
-				if not material:
-					material = StandardMaterial3D.new()
-					mesh_instance.set_surface_override_material(0, material)
-				
-				if material is StandardMaterial3D:
-					material.albedo_texture = textures[texture_key]
-
-func apply_materials(materials: Dictionary):
-	if not character_model or materials.is_empty():
-		return
-	
-	var mesh_instances = _find_all_mesh_instances(character_model)
-	for mesh_instance in mesh_instances:
-		var mesh_name = mesh_instance.name.to_lower()
-		
-		for material_key in materials:
-			if material_key.to_lower() in mesh_name:
-				mesh_instance.set_surface_override_material(0, materials[material_key])
-
-func apply_scale(scale_mult: Vector3):
-	if character_model:
-		character_model.scale = scale_mult
-
-func _find_all_mesh_instances(node: Node) -> Array[MeshInstance3D]:
-	var mesh_instances: Array[MeshInstance3D] = []
-	
-	if node is MeshInstance3D:
-		mesh_instances.append(node)
-	
-	for child in node.get_children():
-		mesh_instances.append_array(_find_all_mesh_instances(child))
-	
-	return mesh_instances
-
 func get_available_animations() -> PackedStringArray:
-	if animation_player:
-		return animation_player.get_animation_list()
+	if animator:
+		return animator.get_available_clips()
 	return PackedStringArray()
+
+func get_current_animation() -> String:
+	if animator:
+		return animator.get_current_clip()
+	return ""
+
+func _resolve_dialogue_text() -> String:
+	if typeof(dialogue_text) == TYPE_STRING:
+		var trimmed := dialogue_text.strip_edges()
+		if not trimmed.is_empty():
+			return trimmed
+	if npc_config and typeof(npc_config.default_dialogue) == TYPE_STRING:
+		var config_text := npc_config.default_dialogue.strip_edges()
+		if not config_text.is_empty():
+			return config_text
+	return "..."
+
+func apply_character_config(config: CharacterConfig):
+	if not config:
+		return
+	if animator:
+		animator.setup(self, character_model, config.animation_overrides, config.animation_speed)
+		animator.refresh()
+
+func _apply_npc_identity(config: CharacterConfig) -> void:
+	npc_name = config.character_name
+	dialogue_text = config.default_dialogue
+	if config.dialogue_resource:
+		dialogue_resource = config.dialogue_resource
 
 # Utility function for facing a position
 func face_position(target_pos: Vector3, turn_speed: float = 8.0):
@@ -294,4 +149,12 @@ func face_position(target_pos: Vector3, turn_speed: float = 8.0):
 	
 	if direction.length() > 0.001:
 		var desired_yaw = atan2(-direction.x, -direction.z) + PI
-		rotation.y = lerp_angle(rotation.y, desired_yaw, turn_speed * get_process_delta_time())
+		if turn_speed <= 0:
+			rotation.y = desired_yaw
+			return
+		var delta := get_physics_process_delta_time()
+		if delta <= 0:
+			rotation.y = desired_yaw
+		else:
+			var t := clamp(turn_speed * delta, 0.0, 1.0)
+			rotation.y = lerp_angle(rotation.y, desired_yaw, t)

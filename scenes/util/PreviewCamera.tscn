@@ -1,0 +1,11 @@
+[gd_scene load_steps=2 format=3 uid="uid://preview_camera"]
+
+[ext_resource type="Script" path="res://scripts/CameraController.gd" id="1_camera_script"]
+
+[node name="PreviewCamera" type="Camera3D" groups=["camera"]]
+projection = 1
+size = 22.0
+near = 0.1
+far = 200.0
+script = ExtResource("1_camera_script")
+target_size = Vector2(20, 20)

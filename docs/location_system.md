@@ -1,134 +1,56 @@
-# Location System Documentation
+# Location & Navigation System
 
 ## Overview
-The game now uses a modular location system where different areas are separate scene files that get loaded dynamically into the main scene.
+Palim 0.1 streams self-contained location scenes into the root `Main.tscn` at runtime. The root scene keeps persistent systems alive (camera, UI, managers) while `LocationManager.gd` swaps the environment underneath the player.
 
-## Structure
+## Current Locations
 
-### Main Scene (scenes/Main.tscn)
-- Contains core persistent systems:
-  - Camera3D with CameraController
-  - GameManager (handles game state and location loading)
-  - WallCutaway system
-  - DialogueUI
-  - NavigationRegion3D (shared navigation mesh)
-  - LocationContainer (empty node where locations are loaded)
+| Name | File | Notes |
+| ---- | ---- | ----- |
+| `player_house` | `scenes/locations/PlayerHouse.tscn` | Indoor room that demonstrates the wall cutaway system and navigation obstacles. |
+| `town_square` | `scenes/locations/TownSquare.tscn` | Outdoor plaza containing the player spawn and a guard NPC. |
 
-### Location Scenes (scenes/locations/)
-- **TestRoom.tscn**: The original prototype room with walls, desk, and Celeste NPC
-- **TownSquare.tscn**: An outdoor area with buildings, fountain, and Town Guard NPC
+Use the built-in shortcuts while the game is running:
 
-## How It Works
+- **F5** -> reload `player_house`
+- **F6** -> reload `town_square`
+- **F7** -> dump current location and animation info to the terminal
+- **Click** -> move the player
+- **E** (`interact`) -> talk to nearby NPCs
+- **Mouse wheel / Middle click** -> adjust or reset zoom
 
-### LocationManager Class
-- Manages loading and unloading of location scenes
-- Maintains a registry of available locations
-- Emits signals when locations change
-- Handles cleanup of previous locations
+## Main Scene Layout (`scenes/Main.tscn`)
 
-### GameManager Integration
-- Creates and initializes LocationManager
-- Responds to location changes by:
-  - Connecting NPCs in the new location
-  - Configuring camera for the location size
-  - Managing persistent game state
+- `Camera3D` + `scripts/CameraController.gd` - orthographic, top-down/three-quarter view with smooth zoom.
+- `GameManager` - instantiates `LocationManager`, loads the startup location, connects NPC dialogue, and configures the camera per location type.
+- `LocationContainer` - empty `Node3D`; every loaded location scene becomes a child of this node.
+- `DialogueUI` & `ZoomIndicator` - UI layers instanced from the `ui/` folder.
+- `WallCutaway` - auto-hides walls that face the active camera based on metadata or naming convention.
 
-## Controls
-- **ENTER**: Load TestRoom location
-- **SPACE**: Load TownSquare location  
-- **H**: Load PlayerHouse location
-- **Click**: Move player
-- **E**: Interact with NPCs
-- **W**: Toggle wall visibility (universal across all locations)
-- **Mouse Wheel**: Zoom in/out (universal camera zoom)
-- **Middle Click**: Reset zoom to default
+## LocationManager (`scripts/LocationManager.gd`)
 
-## Adding New Locations
+- Holds a dictionary of location names -> scene paths.
+- Exposes `load_location_by_name()` (string) and a generic `load_location()` (path) helper.
+- Emits `location_changed(location_name)` so other systems can respond.
+- Ensures previously loaded scenes are `queue_free()`d before adding the new instance under `LocationContainer`.
 
-1. Create a new scene file in `scenes/locations/`
-2. Add your environment geometry, NPCs, and props
-3. Include a NavigationRegion3D for pathfinding
-4. Register the location in LocationManager's locations dictionary
-5. Optionally add camera configuration in GameManager's `_on_location_changed`
+When a location finishes loading, `GameManager`:
 
-## Benefits of This System
+1. Waits one frame so the scene tree is ready.
+2. Reconnects every NPC's `interaction_started` signal.
+3. Configures the camera with `CameraController.configure_for_location_type()` (currently `indoor_small` for PlayerHouse and `outdoor_large` for TownSquare).
 
-- **Modular**: Each location is independent and manageable
-- **Memory Efficient**: Only one location loaded at a time
-- **Scalable**: Easy to add new locations
-- **Performance**: Can optimize each location separately
-- **Team-Friendly**: Multiple developers can work on different locations
+## Wall Cutaway
 
-## Future Enhancements
+The universal wall system (`scripts/WallCutaway.gd`) looks for `CSGBox3D` nodes whose names include "wall" or that provide `wall_direction` metadata. Whenever the camera moves or rotates, the script hides any detected walls that face the camera and reveals the others, keeping interiors readable without manual toggles. Adding `metadata/wall_direction = "north" | "south" | "east" | "west"` in the Inspector ensures consistent detection when your naming scheme varies.
 
-- Transition effects between locations
-- Save/load system for location state
-- Dynamic location parameters (time of day, weather)
-- Location-specific music and ambience
-- Procedural location generation integration
-## Un
-iversal Wall Cutaway System
+## Adding a New Location
 
-The wall cutaway system now works universally across all locations:
+1. Create a scene under `scenes/locations/YourLocation.tscn`.
+2. Include a `NavigationRegion3D` with a baked or authored navigation mesh.
+3. Drop in one instance of `ModularPlayer.tscn` (spawn point) and any `ModularNPC.tscn` you need, adjusting exports like `npc_name` and `dialogue_text`.
+4. Tag walls with metadata or naming if you want cutaway support.
+5. Register the scene inside `LocationManager.gd`'s `locations` dictionary.
+6. If the camera needs a unique setup, extend the match statement in `GameManager.gd::_on_location_changed()` and call `camera.configure_for_location_type("your_type")`.
 
-### How It Works
-- **WallCutaway** script automatically detects walls in any loaded location
-- Searches for CSG nodes with `wall_direction` metadata or wall-like names
-- Supports three modes:
-  - **Mode 0**: All walls visible
-  - **Mode 1**: Cutaway mode (hides south and east walls for isometric view)
-  - **Mode 2**: All walls hidden
-
-### Wall Detection
-Walls are detected by:
-1. **Metadata**: Nodes with `wall_direction` metadata (preferred method)
-2. **Naming**: Nodes with "wall" in their name and directional indicators (north, south, east, west)
-
-### Adding Walls to New Locations
-To ensure walls work with the cutaway system:
-1. Use CSGBox3D nodes for walls
-2. Add `wall_direction` metadata with values: "north", "south", "east", "west"
-3. Or name walls with direction indicators (e.g., "NorthWall", "SouthWall")
-
-### Example Wall Setup
-```gdscript
-# In scene file or script:
-wall_node.set_meta("wall_direction", "north")
-```
-
-This system ensures consistent wall behavior across all locations without requiring location-specific code.
-## St
-andardized Camera System
-
-The camera system now provides consistent, standardized behavior across all locations:
-
-### Camera Types
-- **indoor_small**: For small rooms like PlayerHouse (12x10 units)
-- **indoor_medium**: For medium rooms like TestRoom (20x20 units) 
-- **outdoor_large**: For large areas like TownSquare (30x30 units)
-- **outdoor_huge**: For very large outdoor areas (50x50 units)
-
-### Universal Zoom Features
-- **Smooth Zoom**: Mouse wheel scrolling with smooth interpolation
-- **Zoom Range**: 0.5x to 3.0x (50% to 300%)
-- **Zoom Reset**: Middle-click to return to 100%
-- **Zoom Indicator**: Shows current zoom level in top-right corner
-- **Auto-fade**: Zoom indicator fades after 2 seconds of no zoom changes
-
-### Camera Configuration
-Each location automatically gets the appropriate camera setup:
-```gdscript
-# In GameManager, locations are configured with standard types:
-camera.configure_for_location_type("indoor_medium")  # TestRoom
-camera.configure_for_location_type("outdoor_large")  # TownSquare
-camera.configure_for_location_type("indoor_small")   # PlayerHouse
-```
-
-### Customization
-Camera settings can be adjusted in the CameraController inspector:
-- **Zoom Speed**: How fast zoom responds to mouse wheel
-- **Min/Max Zoom**: Zoom limits (default 0.5x to 3.0x)
-- **Zoom Smoothing**: How smooth the zoom interpolation is
-- **Base View Padding**: Default camera distance from scene
-
-This ensures consistent camera behavior while allowing per-location optimization and global zoom functionality.
+Following these steps keeps new content compatible with the existing systems and minimises glue code.

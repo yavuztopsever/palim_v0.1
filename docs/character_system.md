@@ -1,292 +1,89 @@
-# Modular Character System Documentation
+# Character System
 
 ## Overview
-The modular character system allows you to create diverse characters from a shared base while customizing their appearance, behavior, and properties through configuration resources.
+Palim 0.1 ships with a small but functional third-person character stack built around two reusable scenes (`ModularPlayer.tscn` and `ModularNPC.tscn`). The stack focuses on click-to-move exploration, simple NPC interactions, and a shared animation library (imported from `assets/characters/AnimationLibrary_Godot_Standard.glb`). This document summarises the scripts that participate in the system, how they connect at runtime, and how to extend them safely.
 
-## Architecture
+## Runtime Characters
 
-### Core Components
+### ModularPlayer (`scripts/ModularPlayer.gd`)
+- Extends `CharacterBody3D`.
+- Handles click-to-move navigation, basic jump/crouch/run toggles, and animation playback.
+- Registers itself in the `"player"` group so global systems (e.g. dialogue, wall cutaway) can find it.
+- Expects a child node called `CharacterAnimator` (see below) and a `CharacterModel` instance from the animation GLB.
+- Supports optional appearance tweaks through `set_character_config(config: CharacterConfig)`.
 
-#### 1. BaseCharacter (scripts/BaseCharacter.gd)
-- **Purpose**: Handles common character functionality with integrated animation library
-- **Features**: 
-  - Standardized animation mapping system
-  - Puppeteer functions for consistent animation control
-  - Texture and material application
-  - Scale and visual customization
-  - Character identity management
-  - Full animation library integration from `res://temp_assets/Animation Library[Standard]-2/`
+### ModularNPC (`scripts/ModularNPC.gd`)
+- Extends `StaticBody3D`.
+- Emits `interaction_started` when a player presses the `interact` action inside its `InteractionArea`.
+- Shares the same animation + configuration pipeline as the player, including the dialogue hand-off to the UI.
+- Automatically adds itself to the `"npcs"` group so `GameManager.gd` can connect interactions whenever a new location loads.
 
-#### 2. CharacterConfig (scripts/CharacterConfig.gd)
-- **Purpose**: Resource-based character configuration
-- **Contains**:
-  - Identity (name, ID, description)
-  - Visual appearance (textures, materials, scale)
-  - Animation settings (speed, custom animations)
-  - Behavior properties (movement speed, interaction radius)
-  - Dialogue and personality traits
+## Shared Components
 
-#### 3. ModularPlayer (scripts/ModularPlayer.gd)
-- **Purpose**: Player-specific functionality with character customization
-- **Inherits**: CharacterBody3D + BaseCharacter integration
-- **Features**: Click-to-move, input handling, physics
+| Script | Purpose | Key APIs |
+| ------ | ------- | -------- |
+| `scripts/CharacterAnimator.gd` | Minimal helper that maps action names to available animation clips. | `play(action, force)`, `stop()`, `set_speed()`, `get_available_clips()`. |
+| `scripts/CharacterConfig.gd` | Resource capturing identity, scale, animation speed, stats, and dialogue defaults. | Static helpers such as `create_player_config()`, `create_guard_config()`, etc.  Use `animation_overrides` to point specific actions at custom clip names. |
+| `scripts/dialogue/dialogue_resource.gd` & `scripts/dialogue/dialogue_line.gd` | Lightweight resources for authored dialogue. | `DialogueResource.get_entries()` returns dictionaries consumable by the UI. |
+| `ui/DialogueUI.gd` | Canvas-layer dialogue box used whenever an NPC interaction starts. | `start_dialogue(npc_name, dialogue_resource, fallback_text, npc)` and the `dialogue_finished` signal. |
 
-#### 4. ModularNPC (scripts/ModularNPC.gd)
-- **Purpose**: NPC-specific functionality with character customization
-- **Inherits**: StaticBody3D + BaseCharacter integration
-- **Features**: Interaction system, dialogue, facing behavior
+## Scene + Data Layout
 
-#### 5. CharacterFactory (scripts/CharacterFactory.gd)
-- **Purpose**: Easy character creation with presets
-- **Features**: 
-  - Predefined character types (Guard, Merchant, Villager)
-  - Color variation system
-  - Batch character creation
-  - Configuration management
-
-#### 6. AnimationController (scripts/AnimationController.gd)
-- **Purpose**: High-level animation control and sequencing
-- **Features**:
-  - Simplified animation API (idle(), walk(), attack(), etc.)
-  - Animation sequences and combinations
-  - Event-driven animation system
-  - Debug and testing utilities
-
-## Usage Examples
-
-### Creating Characters
-
-#### Basic NPC Creation
-```gdscript
-# Create a guard with default configuration
-var guard = CharacterFactory.create_npc(CharacterFactory.CharacterType.GUARD)
-scene.add_child(guard)
-
-# Create a merchant with custom colors
-var merchant = CharacterFactory.create_colored_merchant(Color.PURPLE, Color.GOLD)
-scene.add_child(merchant)
+```
+scenes/
+ +-- characters/
+ |   +-- ModularPlayer.tscn      # Player prefab with CharacterAnimator child
+ |   +-- ModularNPC.tscn         # NPC prefab with InteractionArea + CharacterAnimator
+ +-- locations/
+ |   +-- PlayerHouse.tscn        # Indoor space demonstrating cutaway walls
+ |   +-- TownSquare.tscn         # Outdoor plaza with a guard NPC
+ui/
+ +-- DialogueUI.tscn
+ +-- ZoomIndicator.tscn
+data/
+ +-- dialogue/
+     +-- celeste_dialogue.tres   # Example DialogueResource used by earlier prototypes
 ```
 
-#### Custom Character Configuration
-```gdscript
-# Create custom character config
-var config = CharacterConfig.new()
-config.character_name = "Village Elder"
-config.character_id = "elder_01"
-config.scale_multiplier = Vector3(1.2, 1.2, 1.2)
-config.animation_speed = 0.7
-config.default_dialogue = "Welcome to our village, traveler."
+> **Note:** Earlier prototypes relied on a `CharacterFactory` helper. That API was removed during the October 2025 cleanup; create customised characters directly by instancing the scenes above or by authoring `CharacterConfig` resources.
 
-# Apply color customization
-config.set_color_tint("robe", Color.DARK_BLUE)
-config.set_color_tint("beard", Color.GRAY)
+## Working With CharacterConfig
 
-# Create NPC with custom config
-var elder = CharacterFactory.create_custom_npc(config)
-```
+### Authoring a Resource
 
-#### Player Customization
-```gdscript
-# Load player configuration
-var player_config = load("res://data/characters/player_config.tres")
-player_config.character_name = "Aria"
-player_config.scale_multiplier = Vector3(0.9, 0.9, 0.9)
+1. Create a new `CharacterConfig` resource (right-click in the FileSystem dock -> New Resource -> `CharacterConfig`).
+2. Fill in identity fields (name, id, description) and adjust movement/animation speeds.
+3. (Optional) Populate `animation_overrides` with action-to-clip mappings when a character should use different animations than the defaults.
 
-# Create customized player
-var player = CharacterFactory.create_player(player_config)
-```
+Save the resource under the new `data/characters/` folder (see below) to keep authored assets organised.
 
-### Character Variations
-
-#### Creating Multiple Guards with Different Colors
-```gdscript
-# Create 3 guards with different color schemes
-var guards = CharacterFactory.create_town_guards(3)
-for i in range(guards.size()):
-    guards[i].global_position = Vector3(i * 3, 0, 0)
-    scene.add_child(guards[i])
-```
-
-#### Batch Character Creation
-```gdscript
-# Create multiple merchants with variations
-var color_variations = [
-    {"robe": Color.RED, "accent": Color.GOLD},
-    {"robe": Color.BLUE, "accent": Color.SILVER},
-    {"robe": Color.GREEN, "accent": Color.BRONZE}
-]
-var merchants = CharacterFactory.create_npc_group(
-    CharacterFactory.CharacterType.MERCHANT, 
-    3, 
-    color_variations
-)
-```
-
-## Character Configuration Properties
-
-### Identity
-- `character_name`: Display name
-- `character_id`: Unique identifier
-- `character_description`: Flavor text
-
-### Visual Appearance
-- `textures`: Dictionary mapping body parts to textures
-- `materials`: Dictionary mapping body parts to materials
-- `scale_multiplier`: Vector3 for character scaling
-
-### Animation & Movement
-- `animation_speed`: Animation playback speed multiplier
-- `movement_speed`: Character movement speed
-- `custom_animations`: Additional animation libraries
-
-### Behavior
-- `interaction_radius`: How close player must be to interact
-- `default_dialogue`: Default interaction text
-- `character_personality`: Behavior modifier (friendly, hostile, neutral)
-
-## Customization Workflow
-
-### 1. Visual Customization
-Characters can be customized through:
-- **Texture Replacement**: Swap textures on specific body parts
-- **Material Override**: Apply custom materials with colors/properties
-- **Scale Adjustment**: Make characters taller, shorter, wider, etc.
-
-### 2. Behavioral Customization
-- **Animation Speed**: Make characters move faster/slower
-- **Movement Properties**: Adjust speed and interaction ranges
-- **Dialogue Integration**: Connect to dialogue resources
-
-### 3. Preset System
-Use predefined character types:
-- **Guard**: Larger, slower, neutral personality
-- **Merchant**: Medium size, friendly, faster animations
-- **Villager**: Standard proportions, friendly
-- **Custom**: Full control over all properties
-
-## File Structure
-```
-scripts/
-├── BaseCharacter.gd          # Core character functionality
-├── CharacterConfig.gd        # Configuration resource
-├── ModularPlayer.gd          # Player implementation
-├── ModularNPC.gd            # NPC implementation
-├── CharacterFactory.gd       # Character creation utilities
-└── CharacterCustomizer.gd    # Customization tools
-
-scenes/characters/
-├── ModularPlayer.tscn        # Player scene template
-└── ModularNPC.tscn          # NPC scene template
-
-data/characters/
-├── guard_config.tres         # Guard preset
-├── merchant_config.tres      # Merchant preset
-└── player_config.tres        # Player preset
-```
-
-## Integration with Existing System
-
-### Location Integration
-Characters created with the factory can be easily added to any location:
+### Applying a Config at Runtime
 
 ```gdscript
-# In a location scene script
-func populate_with_npcs():
-    var guard = CharacterFactory.create_npc(CharacterFactory.CharacterType.GUARD)
-    guard.global_position = Vector3(5, 0, 5)
-    add_child(guard)
-    
-    var merchant = CharacterFactory.create_npc(CharacterFactory.CharacterType.MERCHANT)
-    merchant.global_position = Vector3(-5, 0, -5)
-    add_child(merchant)
+@onready var npc: Node3D = $ModularNPC
+var config: CharacterConfig = load("res://data/characters/merchant_config.tres")
+
+func _ready() -> void:
+	if npc.has_method("set_character_config"):
+		npc.set_character_config(config)
 ```
 
-### Save/Load System
-Character configurations are resources and can be:
-- Saved to disk for persistence
-- Loaded dynamically for character creation
-- Modified at runtime for character progression
+The same API works for the player character if you prefer to preconfigure their look before the scene starts.
 
-## Future Enhancements
+### Supplying Dialogue
 
-### Planned Features
-- **Equipment System**: Attach/detach equipment pieces
-- **Animation Blending**: Smooth transitions between animations
-- **Procedural Variation**: Automatic generation of character variants
-- **Character Editor UI**: Visual character customization tool
-- **Texture Atlas System**: Efficient texture management for variations
+Assign a `DialogueResource` to an NPC's `npc_config.dialogue_resource` or directly to the NPC's exported `dialogue_resource` property. The dialogue UI will prioritise the resource and fall back to `dialogue_text` whenever the resource is absent.
 
-### Advanced Customization
-- **Bone Scaling**: Individual bone modifications
-- **Facial Expressions**: Dynamic facial animation
-- **Clothing Layers**: Stackable clothing/armor pieces
-- **Particle Effects**: Character-specific visual effects
+## Integration Points
 
-This system provides a solid foundation for creating diverse, customizable characters while maintaining consistency and performance across your game.
-#
-# Integrated Animation System
+- `scripts/GameManager.gd` connects every NPC's `interaction_started` signal when a location loads, pauses player movement during conversations, and resumes control once the UI emits `dialogue_finished`.
+- `scripts/WallCutaway.gd` keeps camera-facing walls hidden by scanning location geometry for wall metadata or naming conventions.
+- `scripts/CameraController.gd` exposes `configure_for_location_type()`; the game manager calls it so both indoor and outdoor spaces get consistent framing.
 
-### Standard Animation Library
-The system now includes full integration with the Animation Library[Standard]-2, providing consistent animation control across all characters.
+## Extending the System
 
-#### Available Standard Animations
-- **Movement**: idle, walk, run, jump, climb, crouch
-- **Combat**: attack, defend, death
-- **Social**: talk, wave, dance
-- **Utility**: sit, sleep, pickup, throw
+1. **New NPC types** - Duplicate `ModularNPC.tscn`, rename the root node, and adjust the exported defaults or attach a lightweight wrapper script if you need bespoke logic.
+2. **Additional emotes** - Add detection for new input actions inside `ModularPlayer.gd::_handle_animation_shortcuts()` or update `CharacterAnimator.gd`'s default map so the new action resolves to an available clip.
+3. **Persistent presets** - Serialise `CharacterConfig` resources to disk and reload them before instancing the character scene.
 
-#### Puppeteer Functions
-Each character can be controlled through standardized puppeteer functions:
-
-```gdscript
-# Direct BaseCharacter control
-character.puppet_idle()
-character.puppet_walk()
-character.puppet_attack()
-
-# High-level AnimationController
-animation_controller.idle()
-animation_controller.walk()
-animation_controller.attack()
-```
-
-#### Animation Sequences
-Create complex animation sequences easily:
-
-```gdscript
-# Greeting sequence
-await animation_controller.greet_sequence()  # wave -> idle
-
-# Combat sequence  
-await animation_controller.combat_sequence()  # attack -> defend -> idle
-
-# Celebration sequence
-await animation_controller.celebration_sequence()  # jump -> dance -> wave -> idle
-```
-
-### Animation Mapping System
-The BaseCharacter automatically maps standard animation names to available animations in the library:
-
-```gdscript
-# These all map to the same animation if available:
-character.play_animation("idle")  # -> "Idle", "idle", "T-Pose", etc.
-character.play_animation("walk")  # -> "Walk", "walk", "Walking", etc.
-```
-
-### Eliminated Redundant Files
-The following old character files have been removed and replaced:
-- ❌ `scenes/PlayerAnimated.tscn` → ✅ `scenes/characters/ModularPlayer.tscn`
-- ❌ `scenes/NPCAnimated.tscn` → ✅ `scenes/characters/ModularNPC.tscn`
-- ❌ `scripts/PlayerAnimated.gd` → ✅ `scripts/ModularPlayer.gd`
-- ❌ `scripts/NPCAnimated.gd` → ✅ `scripts/ModularNPC.gd`
-
-### Testing Animations
-Use the example demo script to test all animations:
-
-```gdscript
-# Attach examples/character_animation_demo.gd to test animations
-# Press number keys 1-9 to test different animations
-# Press 0 to automatically test all available animations
-```
-
-This integrated system ensures every character in your game can be consistently puppeteered with the same animation library and control methods.
+Keep everything under the provided folders (`scenes/characters`, `data/characters`, etc.) so collaborators and automation scripts can rely on a consistent layout.

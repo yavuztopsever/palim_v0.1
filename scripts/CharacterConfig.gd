@@ -8,14 +8,10 @@ class_name CharacterConfig
 @export var character_id: String = ""
 @export var character_description: String = ""
 
-@export_group("Visual Appearance")
-@export var textures: Dictionary = {}  # String -> Texture2D mapping
-@export var materials: Dictionary = {} # String -> Material mapping
+@export_group("Visual & Animation")
 @export var scale_multiplier: Vector3 = Vector3.ONE
-
-@export_group("Animation Settings")
 @export var animation_speed: float = 1.0
-@export var custom_animations: Dictionary = {} # String -> AnimationLibrary mapping
+@export var animation_overrides: Dictionary = {} # String action -> String or Array of clip names
 
 @export_group("Character Stats")
 @export var movement_speed: float = 5.0
@@ -64,16 +60,3 @@ static func create_villager_config() -> CharacterConfig:
 	config.character_personality = "friendly"
 	config.movement_speed = 3.5
 	return config
-
-# Helper function to add texture mappings
-func add_texture(part_name: String, texture: Texture2D):
-	textures[part_name] = texture
-
-func add_material(part_name: String, material: Material):
-	materials[part_name] = material
-
-# Helper to create color variations
-func set_color_tint(part_name: String, color: Color):
-	var material = StandardMaterial3D.new()
-	material.albedo_color = color
-	materials[part_name] = material

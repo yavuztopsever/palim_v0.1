@@ -7,7 +7,6 @@ class_name LocationManager
 signal location_changed(location_name: String)
 
 var locations = {
-	"test_room": "res://scenes/locations/TestRoom.tscn",
 	"town_square": "res://scenes/locations/TownSquare.tscn",
 	"player_house": "res://scenes/locations/PlayerHouse.tscn"
 }
@@ -18,6 +17,17 @@ var location_container: Node3D
 
 func initialize(container: Node3D):
 	location_container = container
+
+func get_location_container() -> Node3D:
+	return location_container
+
+func get_player_spawn() -> Node3D:
+	if not current_location_node:
+		return null
+	var spawn := current_location_node.find_child("PlayerSpawn", true, false)
+	if spawn and spawn is Node3D:
+		return spawn
+	return null
 
 func load_location_by_name(location_name: String):
 	if location_name in locations:

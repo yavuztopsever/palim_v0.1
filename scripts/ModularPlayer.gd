@@ -3,7 +3,10 @@ extends CharacterBody3D
 # Modular Player class with integrated BaseCharacter functionality
 # Handles player-specific movement and input
 
-const SPEED = 5.0
+const WALK_SPEED = 5.0
+const RUN_MULTIPLIER = 1.75
+const CROUCH_MULTIPLIER = 0.45
+const JUMP_VELOCITY = 7.0
 const TURN_SPEED: float = 8.0
 
 var target_position: Vector3
@@ -11,34 +14,27 @@ var moving: bool = false
 var gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
 var movement_enabled: bool = true
 var desired_direction: Vector3 = Vector3.ZERO
+var base_move_speed: float = WALK_SPEED
+var is_running: bool = false
+var is_crouching: bool = false
 
 # Character system - integrated BaseCharacter functionality
-var animation_player: AnimationPlayer
 var character_model: Node3D
-var animation_controller: AnimationController
+var animator: CharacterAnimator
 var character_config: CharacterConfig
-var current_animation: String = ""
-var animation_speed: float = 1.0
-
-# Standard animation mappings for consistent puppeteering
-var standard_animations = {
-	"idle": ["Idle", "idle", "T-Pose", "t-pose"],
-	"walk": ["Walk", "walk", "Walking", "walking"],
-	"run": ["Run", "run", "Running", "running", "Jog", "jog"],
-	"jump": ["Jump", "jump", "Jumping", "jumping"],
-	"attack": ["Attack", "attack", "Punch", "punch", "Strike", "strike"],
-	"defend": ["Defend", "defend", "Block", "block", "Guard", "guard"],
-	"death": ["Death", "death", "Die", "die", "Dead", "dead"],
-	"talk": ["Talk", "talk", "Speaking", "speaking", "Gesture", "gesture"],
-	"wave": ["Wave", "wave", "Greeting", "greeting", "Hello", "hello"],
-	"dance": ["Dance", "dance", "Dancing", "dancing"],
-	"sit": ["Sit", "sit", "Sitting", "sitting"],
-	"sleep": ["Sleep", "sleep", "Sleeping", "sleeping", "Rest", "rest"],
-	"pickup": ["Pickup", "pickup", "Pick", "pick", "Grab", "grab"],
-	"throw": ["Throw", "throw", "Toss", "toss"],
-	"climb": ["Climb", "climb", "Climbing", "climbing"],
-	"crouch": ["Crouch", "crouch", "Crouching", "crouching", "Sneak", "sneak"]
-}
+const ANIMATION_ACTIONS := [
+	"attack",
+	"defend",
+	"talk",
+	"wave",
+	"dance",
+	"sit",
+	"sleep",
+	"pickup",
+	"throw",
+	"climb",
+	"death"
+]
 
 func _ready():
 	target_position = global_transform.origin
@@ -51,29 +47,27 @@ func _ready():
 func setup_character_system():
 	# Find character components
 	character_model = get_node_or_null("CharacterModel")
-	animation_controller = get_node_or_null("AnimationController")
+	animator = get_node_or_null("CharacterAnimator")
+	if animator == null:
+		# Backward compatibility if the node wasn't renamed in the scene yet
+		animator = get_node_or_null("AnimationController")
 	
 	if not character_model:
-		print("Error: No CharacterModel found in ", name)
+		push_warning("Error: No CharacterModel found in %s" % name)
 		return
 	
-	# Find AnimationPlayer within the character model
-	animation_player = _search_for_animation_player(character_model)
-	if not animation_player:
-		print("Error: No AnimationPlayer found in character model")
+	if not animator:
+		push_warning("Error: No CharacterAnimator found in %s" % name)
 		return
 	
-	print("Player character setup complete. Available animations: ", animation_player.get_animation_list())
+	var overrides := {} if character_config == null else character_config.animation_overrides
+	var speed := 1.0 if character_config == null else character_config.animation_speed
+	animator.setup(self, character_model, overrides, speed)
+	if character_config and character_config.movement_speed > 0.0:
+		base_move_speed = character_config.movement_speed
+	animator.refresh()
+	print("Player character setup complete. Available animations: ", animator.get_available_clips())
 	_play_idle_animation()
-
-func _search_for_animation_player(node: Node) -> AnimationPlayer:
-	if node is AnimationPlayer:
-		return node
-	for child in node.get_children():
-		var result = _search_for_animation_player(child)
-		if result:
-			return result
-	return null
 
 func _physics_process(delta):
 	if not is_on_floor():
@@ -81,8 +75,12 @@ func _physics_process(delta):
 	elif velocity.y < 0:
 		velocity.y = 0
 
-	if movement_enabled and Input.is_action_just_pressed("click"):
-		_set_target_position()
+	if movement_enabled:
+		if Input.is_action_just_pressed("jump"):
+			_handle_jump()
+		if Input.is_action_just_pressed("crouch"):
+			toggle_crouch()
+		_handle_animation_shortcuts()
 
 	if moving:
 		_move_towards_target(delta)
@@ -96,7 +94,16 @@ func _physics_process(delta):
 		if distance <= 0.1 or is_on_wall():
 			stop_movement()
 
-func _set_target_position():
+func _unhandled_input(event):
+	if not movement_enabled:
+		return
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+		if event.double_click and not is_crouching:
+			_set_target_position(true)
+		else:
+			_set_target_position()
+
+func _set_target_position(run: bool = false):
 	var camera = get_viewport().get_camera_3d()
 	var mouse_pos = get_viewport().get_mouse_position()
 	var ray_origin = camera.project_ray_origin(mouse_pos)
@@ -109,113 +116,61 @@ func _set_target_position():
 		target_position = result.position
 		target_position.y = global_transform.origin.y
 		moving = true
+		is_running = run and not is_crouching
 		desired_direction = (target_position - global_transform.origin)
 		desired_direction.y = 0
 		if desired_direction.length() > 0.01:
 			desired_direction = desired_direction.normalized()
-		_play_walk_animation()
+		_play_movement_animation()
 
 func _move_towards_target(delta: float) -> void:
 	var direction = target_position - global_transform.origin
 	direction.y = 0
 	if direction.length() > 0.01:
 		desired_direction = direction.normalized()
-		velocity.x = desired_direction.x * SPEED
-		velocity.z = desired_direction.z * SPEED
+		var speed = _get_current_move_speed()
+		velocity.x = desired_direction.x * speed
+		velocity.z = desired_direction.z * speed
 		_update_rotation(delta)
-		_play_walk_animation()
+		_play_movement_animation()
 	else:
 		stop_movement()
 
 func _play_walk_animation():
-	if not play_animation("walk"):
-		play_animation("run")  # Fallback to run if walk not available
+	if play_animation("walk"):
+		return
+	play_animation("run")  # Fallback to run if walk not available
+
+func _play_run_animation():
+	if play_animation("run"):
+		return
+	_play_walk_animation()
+
+func _play_crouch_animation():
+	play_animation("crouch", true)
+
+func _play_movement_animation():
+	if is_crouching:
+		_play_crouch_animation()
+		return
+	if is_running:
+		_play_run_animation()
+		return
+	_play_walk_animation()
 
 func _play_idle_animation():
-	play_animation("idle")
+	if is_crouching:
+		_play_crouch_animation()
+		return
+	if play_animation("idle"):
+		return
+	play_animation("walk")
 
-# Animation system with standard animation mapping
+# Animation system with dynamic animation mapping
 func play_animation(anim_name: String, force: bool = false) -> bool:
-	if not animation_player:
-		return false
-	
-	var normalized_name = anim_name.to_lower()
-	var animation_variants = []
-	
-	# Check if it's a standard animation name
-	if normalized_name in standard_animations:
-		animation_variants = standard_animations[normalized_name]
-	else:
-		# Try direct name variants
-		animation_variants = [
-			anim_name,
-			anim_name.capitalize(),
-			anim_name.to_upper(),
-			anim_name.to_lower()
-		]
-	
-	# Try to find and play the animation
-	for name_variant in animation_variants:
-		if animation_player.has_animation(name_variant):
-			if current_animation != name_variant or force:
-				animation_player.speed_scale = animation_speed
-				animation_player.play(name_variant)
-				current_animation = name_variant
-				print("Player playing animation: ", name_variant)
-				return true
-			return true
-	
-	print("Player animation not found: ", anim_name, " (tried: ", animation_variants, ")")
+	if animator:
+		return animator.play(anim_name, force)
 	return false
-
-# Puppeteer functions for consistent character control
-func puppet_idle():
-	return play_animation("idle")
-
-func puppet_walk():
-	return play_animation("walk")
-
-func puppet_run():
-	return play_animation("run")
-
-func puppet_jump():
-	return play_animation("jump")
-
-func puppet_attack():
-	return play_animation("attack")
-
-func puppet_talk():
-	return play_animation("talk")
-
-func puppet_wave():
-	return play_animation("wave")
-
-func puppet_dance():
-	return play_animation("dance")
-
-func puppet_sit():
-	return play_animation("sit")
-
-func puppet_sleep():
-	return play_animation("sleep")
-
-func puppet_pickup():
-	return play_animation("pickup")
-
-func puppet_throw():
-	return play_animation("throw")
-
-func puppet_climb():
-	return play_animation("climb")
-
-func puppet_crouch():
-	return play_animation("crouch")
-
-func puppet_defend():
-	return play_animation("defend")
-
-func puppet_death():
-	return play_animation("death")
 
 func _update_rotation(delta: float) -> void:
 	if desired_direction.length() < 0.001:
@@ -227,14 +182,58 @@ func stop_movement():
 	velocity.x = 0
 	velocity.z = 0
 	moving = false
+	is_running = false
 	target_position = global_transform.origin
 	desired_direction = Vector3.ZERO
 	_play_idle_animation()
+
+func toggle_crouch():
+	is_crouching = not is_crouching
+	if is_crouching:
+		is_running = false
+	stop_movement()
+
+func _handle_jump():
+	if not is_on_floor():
+		return
+	if is_crouching:
+		is_crouching = false
+	velocity.y = JUMP_VELOCITY
+	if animator and animator.play("jump", true):
+		return
+	play_animation("jump", true)
+
+func _handle_animation_shortcuts():
+	for action in ANIMATION_ACTIONS:
+		if Input.is_action_just_pressed(action):
+			_trigger_animation(action)
+
+func _trigger_animation(animation_name: String):
+	stop_movement()
+	play_animation(animation_name, true)
+
+func _get_current_move_speed() -> float:
+	var speed = base_move_speed
+	if is_running:
+		speed *= RUN_MULTIPLIER
+	if is_crouching:
+		speed *= CROUCH_MULTIPLIER
+	return speed
 
 func set_movement_enabled(value: bool):
 	movement_enabled = value
 	if not movement_enabled:
 		stop_movement()
+
+func get_available_animations() -> PackedStringArray:
+	if animator:
+		return animator.get_available_clips()
+	return PackedStringArray()
+
+func get_current_animation() -> String:
+	if animator:
+		return animator.get_current_clip()
+	return ""
 
 # Character customization methods
 func set_character_config(config: CharacterConfig):
@@ -246,60 +245,10 @@ func get_character_config() -> CharacterConfig:
 	return character_config
 
 func apply_character_config(config: CharacterConfig):
-	if not config or not character_model:
+	if not config:
 		return
-	
-	# Apply visual customizations
-	apply_textures(config.textures)
-	apply_materials(config.materials)
-	apply_scale(config.scale_multiplier)
-	
-	# Apply animation settings
-	animation_speed = config.animation_speed
-
-func apply_textures(textures: Dictionary):
-	if not character_model or textures.is_empty():
-		return
-	
-	# Find all MeshInstance3D nodes and apply textures
-	var mesh_instances = _find_all_mesh_instances(character_model)
-	for mesh_instance in mesh_instances:
-		var mesh_name = mesh_instance.name.to_lower()
-		
-		# Apply textures based on mesh names
-		for texture_key in textures:
-			if texture_key.to_lower() in mesh_name:
-				var material = mesh_instance.get_surface_override_material(0)
-				if not material:
-					material = StandardMaterial3D.new()
-					mesh_instance.set_surface_override_material(0, material)
-				
-				if material is StandardMaterial3D:
-					material.albedo_texture = textures[texture_key]
-
-func apply_materials(materials: Dictionary):
-	if not character_model or materials.is_empty():
-		return
-	
-	var mesh_instances = _find_all_mesh_instances(character_model)
-	for mesh_instance in mesh_instances:
-		var mesh_name = mesh_instance.name.to_lower()
-		
-		for material_key in materials:
-			if material_key.to_lower() in mesh_name:
-				mesh_instance.set_surface_override_material(0, materials[material_key])
-
-func apply_scale(scale_mult: Vector3):
-	if character_model:
-		character_model.scale = scale_mult
-
-func _find_all_mesh_instances(node: Node) -> Array[MeshInstance3D]:
-	var mesh_instances: Array[MeshInstance3D] = []
-	
-	if node is MeshInstance3D:
-		mesh_instances.append(node)
-	
-	for child in node.get_children():
-		mesh_instances.append_array(_find_all_mesh_instances(child))
-	
-	return mesh_instances
+	if animator:
+		animator.setup(self, character_model, config.animation_overrides, config.animation_speed)
+		animator.refresh()
+	if config.movement_speed > 0.0:
+		base_move_speed = config.movement_speed

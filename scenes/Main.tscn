@@ -5,7 +5,7 @@
 [ext_resource type="Script" uid="uid://bdcssc5s0ea0m" path="res://scripts/WallCutaway.gd" id="3_walls"]
 [ext_resource type="NavigationMesh" uid="uid://y0po8upefa3v" path="res://navigation/MainNavigationMesh.tres" id="4_navmesh"]
 [ext_resource type="PackedScene" path="res://ui/DialogueUI.tscn" id="5_dialogue_ui"]
-[ext_resource type="PackedScene" path="res://ui/ZoomIndicator.tscn" id="6_zoom_ui"]
+[ext_resource type="PackedScene" uid="uid://b0oom7vksmm" path="res://ui/ZoomIndicator.tscn" id="6_zoom_ui"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_1"]
 sky_top_color = Color(0.2, 0.2, 0.25, 1)

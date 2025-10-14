@@ -64,7 +64,7 @@ func configure_for_location_type(location_type: String, center: Vector3 = Vector
 	match location_type:
 		"indoor_small":  # Like PlayerHouse
 			configure_for_scene(center, 12, 10)
-		"indoor_medium": # Like TestRoom
+		"indoor_medium": # For mid-sized indoor locations
 			configure_for_scene(center, 20, 20)
 		"outdoor_large": # Like TownSquare
 			configure_for_scene(center, 30, 30)

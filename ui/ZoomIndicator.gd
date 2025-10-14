@@ -22,7 +22,8 @@ func _ready():
 func _process(delta):
 	if camera_controller and camera_controller.has_method("get_zoom_level"):
 		var zoom = camera_controller.get_zoom_level()
-		zoom_label.text = "Zoom: %d%%" % (100 / zoom)
+		var percent_zoom := int(round(100.0 / max(zoom, 0.001)))
+		zoom_label.text = "Zoom: %d%%" % percent_zoom
 		
 		# Show indicator when zoom changes
 		if abs(zoom - 1.0) > 0.01:  # Not at default zoom

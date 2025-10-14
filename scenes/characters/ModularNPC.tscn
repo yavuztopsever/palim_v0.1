@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" path="res://scripts/ModularNPC.gd" id="1_modular_npc"]
 [ext_resource type="PackedScene" path="res://assets/characters/AnimationLibrary_Godot_Standard.glb" id="2_character"]
-[ext_resource type="Script" path="res://scripts/AnimationController.gd" id="3_anim_controller"]
+[ext_resource type="Script" path="res://scripts/CharacterAnimator.gd" id="3_animator"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_1"]
 height = 1.8
@@ -28,8 +28,8 @@ collision_mask = 2
 [node name="CollisionShape3D" type="CollisionShape3D" parent="InteractionArea"]
 shape = SubResource("SphereShape3D_1")
 
-[node name="AnimationController" type="Node" parent="."]
-script = ExtResource("3_anim_controller")
+[node name="CharacterAnimator" type="Node" parent="."]
+script = ExtResource("3_animator")
 
 [connection signal="body_entered" from="InteractionArea" to="." method="_on_interaction_area_body_entered"]
 [connection signal="body_exited" from="InteractionArea" to="." method="_on_interaction_area_body_exited"]
